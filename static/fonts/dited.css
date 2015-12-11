@@ -1,0 +1,6 @@
+@font-face {
+    font-family: 'Dited';
+    src: local('Dited'), url('dited.woff2') format('woff2'), url('dited.woff') format('woff'), url('dited.ttf') format('truetype');
+    font-weight: 400;
+    font-style: normal;
+}
