@@ -1,0 +1,22 @@
+{
+  "name": "gammy",
+  "version": "1.0.0",
+  "description": "Get highest score due finish point",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bmwant/canvaSokoban.git"
+  },
+  "author": "Misha Behersky",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/bmwant/canvaSokoban/issues"
+  },
+  "homepage": "https://github.com/bmwant/canvaSokoban#readme",
+  "dependencies": {
+    "jquery": "^3.3.1"
+  }
+}

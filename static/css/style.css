@@ -1,0 +1,19 @@
+@font-face {
+  font-family: 'Dited';
+  src: local('Dited'), url('/static/fonts/dited.woff2') format('woff2'), url('/static/fonts/dited.woff') format('woff'), url('/static/fonts/dited.ttf') format('truetype');
+  font-weight: 400;
+  font-style: normal;
+}
+canvas {
+  border: 1px solid black;
+  overflow: hidden;
+}
+p {
+  font-family: 'Dited';
+  font-size: 20px;
+}
+
+h2 {
+  font-family: 'Dited';
+  font-size: 28px;
+}
