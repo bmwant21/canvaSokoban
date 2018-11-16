@@ -1,0 +1,368 @@
+<html>
+  <head>
+    <title>Sokoban</title>
+    <style type="text/css">
+      @font-face {
+        font-family: 'Dited';
+        src: local('Dited'), url('static/fonts/dited.woff2') format('woff2'), url('static/fonts/dited.woff') format('woff'), url('static/fonts/dited.ttf') format('truetype');
+        font-weight: 400;
+        font-style: normal;
+      }
+      canvas {
+        border: 1px solid black;
+        overflow: hidden;
+      }
+      p {
+        font-family: 'Dited';
+        font-size: 20px;
+      }
+
+      h2 {
+        font-family: 'Dited';
+        font-size: 28px;
+      }
+    </style>
+  </head>
+  <body onload="draw();">
+<h2>canvaSokoban 0.0.1</h2>
+<canvas id="fieldb" width="300" height="300"></canvas>
+<p>Moves: <span id="moves"></span></p>
+<p>Cherries left: <span id="cherries-count"></span></p>
+<audio autoplay loop preload>
+  <source src="sound.mp3" type="audio/mpeg">
+  <source src="sound.ogg" type="audio/ogg">
+Your browser does not support the audio element.
+</audio>
+<script>
+
+var ItemsEnum = {
+  WALL: 2,
+  EMPTY: 0,
+  BOX: 1,
+  MAN: 5
+};
+
+man = new Image();
+block = new Image();
+box = new Image();
+boxCompleted = new Image();
+cherry = new Image();
+moves = 0;
+cherriesLeft = 0;
+
+var field = [
+  [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2],
+  [2, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 0, 0, 0, 2],
+  [2, 0, 2, 2, 0, 0, 0, 2, 0, 2, 2, 0, 0, 0, 2],
+  [2, 0, 2, 2, 0, 2, 2, 2, 0, 2, 2, 0, 0, 0, 2],
+  [2, 0, 2, 2, 0, 2, 2, 2, 0, 2, 2, 1, 0, 0, 2],
+  [2, 0, 0, 2, 0, 2, 2, 2, 0, 2, 2, 0, 0, 0, 2],
+  [2, 2, 0, 2, 0, 2, 2, 2, 0, 2, 2, 0, 0, 0, 2],
+  [2, 2, 1, 2, 0, 2, 2, 2, 0, 0, 0, 0, 0, 0, 2],
+  [2, 2, 0, 2, 0, 0, 0, 0, 1, 0, 2, 0, 0, 0, 2],
+  [2, 2, 0, 2, 0, 0, 2, 2, 0, 0, 2, 0, 0, 5, 2],
+  [2, 2, 0, 2, 0, 0, 2, 2, 0, 0, 2, 0, 0, 0, 2],
+  [2, 0, 0, 2, 0, 0, 2, 2, 0, 2, 2, 0, 0, 0, 2],
+  [2, 2, 0, 0, 0, 0, 2, 2, 0, 2, 2, 0, 0, 0, 2],
+  [2, 2, 0, 0, 0, 2, 2, 2, 2, 2, 2, 2, 0, 0, 2],
+  [2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2, 2],
+];
+
+var cherries = [
+    [3, 8],
+    [12, 2],
+    [13, 12]
+  ];
+
+// shim layer with setTimeout fallback
+window.requestAnimFrame = (function(){
+  return  window.requestAnimationFrame   ||
+      window.webkitRequestAnimationFrame ||
+      window.mozRequestAnimationFrame    ||
+      window.oRequestAnimationFrame      ||
+      window.msRequestAnimationFrame     ||
+      function( callback ){
+      window.setTimeout(callback, 1000 / 60);
+      };
+})();
+
+// Check if there is enough boxes to cover all cheries
+(function() {
+  var totalBoxes = 0;
+  for(var i = 0; i < field.length; i++) {
+    for(var j = 0; j < field[i].length; j++) {
+      if(field[i][j] == ItemsEnum.BOX) {
+        totalBoxes++;
+      }
+    }
+  }
+  if (totalBoxes < cherries.length) {
+    alert('Invalid map. Not enough boxes to cover all cherries');
+    // todo (misha): add error page
+    window.stop();
+  }
+  cherriesLeft = cherries.length;
+  showInfo();
+})();
+
+function showInfo() {
+  var movesInfo = document.getElementById('moves');
+  var cherriesInfo = document.getElementById('cherries-count');
+  movesInfo.innerHTML = moves;
+  cherriesInfo.innerHTML = cherriesLeft;
+  if(cherriesLeft == 0) document.location = 'expl.html';
+}
+
+function isCherry(i, j) {
+  for (var index = 0; index < cherries.length; index++) {
+    if (cherries[index][0] == i && cherries[index][1] == j) {
+      return true;
+    }
+  }
+  return false;
+}
+
+
+  function drawElem(picture, what) {
+    var canvas = document.getElementById('fieldb');
+    var ctx = canvas.getContext('2d');
+    for(var i = 0; i < field.length; i++) {
+      for(var j = 0; j < field[i].length; j++) {
+        var coordx = 20*j;
+        var coordy = 20*i;
+
+        if (field[i][j] == what) {
+          if (what == ItemsEnum.BOX && isCherry(i, j)) {
+            ctx.drawImage(boxCompleted, coordx, coordy, 20, 20);
+          } else {
+            ctx.drawImage(picture, coordx, coordy, 20, 20);
+          }
+        }
+      }
+    }
+  }
+
+  function drawCherries() {
+    var canvas = document.getElementById('fieldb');
+    var ctx = canvas.getContext('2d');
+    for(var i = 0; i < cherries.length; i++) {
+      var x = cherries[i][1];
+      var y = cherries[i][0];
+      var coordx = 20*x;
+      var coordy = 20*y;
+      if (field[y][x] == ItemsEnum.BOX) {
+        continue;
+      }
+      ctx.drawImage(cherry, coordx, coordy, 20, 20);
+    }
+  }
+
+  function drawAllField() {
+    drawElem(man, 5);
+    drawElem(box, 1);
+    drawElem(block, 2);
+    // Draw cherry in front of all images
+    drawCherries()
+  }
+  var posx = 9;
+  var posy = 13;
+
+  function clear(posi, posj) {
+    var canvas = document.getElementById('fieldb');
+    var ctx = canvas.getContext('2d');
+    ctx.clearRect(20*posj, 20*posi, 20, 20);
+  }
+
+  function movement(where) {
+    var moves = {
+      left: {i: 0, j: -1},
+      right: {i: 0, j: 1},
+      up: {i: -1, j: 0},
+      down: {i: 1, j: 0}
+    }
+    di = moves[where].i;
+    dj = moves[where].j;
+    ddi = 2*di;
+    ddj = 2*dj;
+    if(posx+ddi < 0 || posx+ddi >= 15) {
+      return false;
+    }
+    if(posy+ddj < 0 || posy+ddj >= 15) {
+      return false;
+    }
+    var stepForwardI = posx+ddi;
+    var stepForwardJ = posy+ddj;
+    if(field[posx+di][posy+dj] == ItemsEnum.BOX &&
+      field[stepForwardI][stepForwardJ] == ItemsEnum.EMPTY) {
+      return true;
+    }
+    return false;
+  }
+
+  function doKeyDown(e) {
+      //up
+      if( e.keyCode == 38 ) {
+        // with box
+        if(movement("up")) {
+          var manX = posx-1;
+          var manY = posy;
+          var boxX = posx-2;
+          var boxY = posy;
+          field[posx][posy] = ItemsEnum.EMPTY;
+          field[manX][manY] = ItemsEnum.MAN;
+          field[boxX][boxY] = ItemsEnum.BOX;
+          // clear(posx, posy);
+          if (isCherry(boxX, boxY)) {
+            cherriesLeft--;
+          } else if (isCherry(manX, manY)) {
+            cherriesLeft++;
+          }
+          clear(posx, posy);
+          moves++;
+          posx--;
+        }
+        else if(posx-1 >= 0 && field[posx-1][posy] === 0) {
+          field[posx][posy] = 0;
+          clear(posx, posy);
+          moves++;
+          posx--;
+          field[posx][posy] = 5;
+        }
+        drawAllField();
+      }
+      //left
+      if ( e.keyCode == 37) {
+        if(movement("left")) {
+          var manX = posx;
+          var manY = posy-1;
+          var boxX = posx;
+          var boxY = posy-2;
+          field[posx][posy] = ItemsEnum.EMPTY;
+          field[manX][manY] = ItemsEnum.MAN;
+          field[boxX][boxY] = ItemsEnum.BOX;
+          // clear(posx, posy);
+          if (isCherry(boxX, boxY)) {
+            cherriesLeft--;
+          } else if (isCherry(manX, manY)) {
+            cherriesLeft++;
+          }
+          clear(posx, posy);
+          moves++;
+          posy--;
+        }
+        else if(posy-1 >= 0 && field[posx][posy-1] === 0) {
+          field[posx][posy] = 0;
+          clear(posx, posy);
+          moves++;
+          posy--;
+          field[posx][posy] = 5;
+        }
+        drawAllField();
+      }
+      //down
+      if ( e.keyCode == 40 ) {
+        if(movement("down")) {
+          field[posx][posy] = 0;
+          var manX = posx+1;
+          var manY = posy;
+          var boxX = posx+2;
+          var boxY = posy;
+          field[posx][posy] = ItemsEnum.EMPTY;
+          field[manX][manY] = ItemsEnum.MAN;
+          field[boxX][boxY] = ItemsEnum.BOX;
+          // clear(posx, posy);
+          if (isCherry(boxX, boxY)) {
+            cherriesLeft--;
+          } else if (isCherry(manX, manY)) {
+            cherriesLeft++;
+          }
+          clear(posx, posy);
+          moves++;
+          posx++;
+        }
+        else if(posx+1 < 15 && field[posx+1][posy] === 0) {
+          field[posx][posy] = 0;
+          clear(posx, posy);
+          posx++;
+          moves++;
+          field[posx][posy] = 5;
+        }
+        drawAllField();
+      }
+      //right
+      if ( e.keyCode == 39 ) {
+        if(movement("right")) {
+          var manX = posx;
+          var manY = posy+1;
+          var boxX = posx;
+          var boxY = posy+2;
+          field[posx][posy] = ItemsEnum.EMPTY;
+          field[manX][manY] = ItemsEnum.MAN;
+          field[boxX][boxY] = ItemsEnum.BOX;
+          // clear(posx, posy);
+          if (isCherry(boxX, boxY)) {
+            cherriesLeft--;
+          } else if (isCherry(manX, manY)) {
+            cherriesLeft++;
+          }
+          clear(posx, posy);
+          moves++;
+          posy++;
+        }
+        else if(posy+1 < 15 && field[posx][posy+1] === 0) {
+          field[posx][posy] = 0;
+          clear(posx, posy);
+          posy++;
+          moves++;
+          field[posx][posy] = 5;
+        }
+        drawAllField();
+      }
+
+      showInfo();
+    }
+
+
+  function draw() {
+
+    var canvas = document.getElementById('fieldb');
+
+    var ctx = canvas.getContext('2d');
+    document.addEventListener("keydown", doKeyDown, true);
+
+      // Create new img element
+    man.src = 'man.png'; // Set source path
+    boxCompleted.src = 'boxCompleted.png';
+    block.src = 'border.png';
+    box.src = 'box.png';
+    cherry.src = 'cherry.png';
+
+    man.onload = function() {
+      drawElem(man, 5);
+    };
+
+    block.onload = function() {
+      drawElem(block, 2);
+    };
+
+    box.onload = function() {
+      drawElem(box, 1);
+    };
+
+    cherry.onload = function() {
+      drawCherries();
+    };
+
+    /* ctx.fillStyle = "rgb(200,0,0)";
+        ctx.fillRect (10, 10, 55, 50);
+
+        ctx.fillStyle = "rgba(0, 0, 200, 0.5)";
+        ctx.fillRect (30, 30, 55, 50); */
+
+
+  }
+
+
+</script>
+  </body>
+</html>
