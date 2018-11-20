@@ -1,4 +1,10 @@
 import math
+import random
+from enum import IntEnum
+
+
+class Cell(IntEnum):
+    WALL = 0
 
 
 class Position(object):
@@ -39,8 +45,24 @@ class Position(object):
 
 
 class Field(object):
-    def __init__(self):
-        self._field = []
+    def __init__(self, xsize, ysize, max_value):
+        self._field = [
+            [0 for _ in range(xsize)]
+            for _ in range(ysize)
+        ]
+        self.max_value = max_value
+
+    def fill(self):
+        for y_index in range(self.leny):
+            for x_index in range(self.lenx):
+                if self._is_border(x_index, y_index):
+                    value = Cell.WALL.value
+                else:
+                    value = random.randint(1, self.max_value)
+                self._field[y_index][x_index] = value
+
+    def _is_border(self, x, y):
+        return (x == 0) or (y == 0) or (x == self.lenx-1) or (y == self.leny-1)
 
     @property
     def lenx(self):
@@ -53,3 +75,16 @@ class Field(object):
     def __getitem__(self, item):
         return self._field.__getitem__(item)
 
+    def __str__(self):
+        return '\n'.join([
+            ''.join([
+                str(self._field[y][x]) for x in range(self.lenx)
+            ]) for y in range(self.leny)
+        ])
+
+
+if __name__ == '__main__':
+    f = Field(4, 5, max_value=9)
+    print(f.lenx, f.leny)
+    f.fill()
+    print(f)
