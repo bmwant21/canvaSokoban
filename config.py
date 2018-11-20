@@ -12,7 +12,7 @@ DEFAULT_DATETIME_FORMAT = '{} {}'.format(DEFAULT_TIME_FORMAT,
 
 
 # DEVELOPING
-RUN_PORT = 8080
+RUN_PORT = 8011
 DEBUG = False
 
 # Override values from settings_local.py

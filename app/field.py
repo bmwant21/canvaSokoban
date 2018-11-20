@@ -47,12 +47,18 @@ class Position(object):
     def steps_to(self, other):
         return abs(self.x - other.x) + abs(self.y - other.y)
 
+    def to_dict(self):
+        return {
+            'x': self.x,
+            'y': self.y
+        }
+
 
 DIRECTIONS = {
-    'left':  Position(x=-1, y= 0),
+    'up':    Position(x= 0, y=-1),
     'right': Position(x= 1, y= 0),
-    'up':    Position(x= 0, y= 1),
-    'down':  Position(x= 0, y=-1),
+    'down':  Position(x= 0, y= 1),
+    'left':  Position(x=-1, y= 0),
 }
 
 

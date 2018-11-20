@@ -45,8 +45,8 @@ class State(object):
 
 
 class Game(object):
-    DEFAULT_SIZE_X = 21
-    DEFAULT_SIZE_Y = 21
+    DEFAULT_SIZE_X = 11
+    DEFAULT_SIZE_Y = 11
 
     def __init__(
         self,
@@ -71,7 +71,7 @@ class Game(object):
             value = self.field[position.y][position.x]
             self._score += value
             self._pos = position
-            self._moves_left -= 1
+        self._moves_left -= 1
 
         distance_x = abs(self._end.x - self._pos.x)
         distance_y = abs(self._end.y - self._pos.y)
@@ -119,7 +119,9 @@ class Game(object):
 
     @property
     def failed(self) -> bool:
-        return self._pos.steps_to(self._end) > self._moves_left
+        return self._moves_left == 0 and self._pos != self._end
+        # return True
+        # return self._pos.steps_to(self._end) > self._moves_left
 
     @property
     def max_steps(self):
@@ -145,6 +147,7 @@ class Game(object):
         end_x = random.randint(xsize // 2, xsize-2)
         end_y = random.randint(1, ysize // 2)
         end = Position(x=end_x, y=end_y)
+        # IMPORTANT: offset should be even
         steps = start.steps_to(end) + 4
         return cls(
             field=field,

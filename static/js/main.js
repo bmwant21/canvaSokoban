@@ -1,8 +1,5 @@
 var ItemsEnum = {
-  WALL: -1,
-  EMPTY: 0,
-  BOX: 1,
-  MAN: 5
+  WALL: -1
 };
 
 man = new Image();
@@ -13,14 +10,18 @@ cherry = new Image();
 moves = 0;
 cherriesLeft = 0;
 
-var field, posi, posj;
+var field, posi, posj,
+  endi, endj;
 
 $.get('/load_data', function(data) {
   console.log(data);
   field = data.field;
   posj = data.player.x;
   posi = data.player.y;
+  endj = data.end.x;
+  endi = data.end.y;
   draw();
+  drawScores();
   // drawAllField();
 });
 
@@ -71,29 +72,35 @@ function drawPlayer(posI, posJ) {
   var ctx = canvas.getContext('2d');
   var coordx = posJ*20;
   var coordy = posI*20;
-  console.log(posI, posJ, field[posI][posJ]);
+  // console.log(posI, posJ, field[posI][posJ]);
   ctx.drawImage(man, coordx, coordy, 20, 20);
 }
 
-function drawCherries() {
+function drawScores() {
   var canvas = document.getElementById('fieldb');
   var ctx = canvas.getContext('2d');
-  console.log(field);
-  for(var i = 0; i < cherries.length; i++) {
-    var x = cherries[i][1];
-    var y = cherries[i][0];
-    var coordx = 20*x;
-    var coordy = 20*y;
-    if (field[y][x] == ItemsEnum.BOX) {
-      continue;
+  ctx.font = "10px Arial";
+
+  for(var i = 0; i < field.length; i++) {
+    for(var j = 0; j < field[i].length; j++) {
+      var value = field[i][j];
+      var coordx = 20 * j + 5;
+      var coordy = 20 * i + 15;
+      if(value === ItemsEnum.WALL) continue;
+      clear(i, j);
+      if(i === endi && j === endj) {
+        ctx.fillStyle = '#F98948';
+        ctx.fillRect(20*j, 20*i, 20, 20);
+        ctx.fillStyle = '#000000';
+      }
+      ctx.fillText(value, coordx, coordy);
     }
-    ctx.drawImage(cherry, coordx, coordy, 20, 20);
   }
 }
 
 function drawAllField() {
   drawElem(block, -1);
-
+  drawScores();
   // draw player in front of everything
   drawPlayer(posi, posj);
 }
