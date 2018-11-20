@@ -1,4 +1,4 @@
-from app.field import Position, Field
+from app.field import Position, Field, Cell
 
 
 class State(object):
@@ -50,7 +50,8 @@ class Game(object):
         return state
 
     def can_move(self, position: Position) -> bool:
-        return True
+        new_pos = self._pos + position
+        return self.field[new_pos.y][new_pos.x] != Cell.WALL.value
 
     @property
     def failed(self) -> bool:

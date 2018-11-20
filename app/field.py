@@ -88,3 +88,8 @@ if __name__ == '__main__':
     print(f.lenx, f.leny)
     f.fill()
     print(f)
+
+    p1 = Position(x=1, y=2)
+    p2 = Position(x=3, y=4)
+    p3 = p1+p2
+    print(p3)
