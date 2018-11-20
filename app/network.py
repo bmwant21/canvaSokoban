@@ -80,11 +80,12 @@ class GameNetwork(object):
         directions where we want move to
         """
         index = randint(0, 3)
-        direction = list(DIRECTIONS.keys())[index]
-        return index, state.current_position + DIRECTIONS[direction]
+        return index, self.get_game_action(state, action_index=index)
 
-    def get_game_action(self, snake, action):
-        pass
+    def get_game_action(self, state: State, action_index: int) -> Position:
+        direction = list(DIRECTIONS.keys())[action_index]
+        print(direction, end=',')
+        return state.current_position + DIRECTIONS[direction]
 
     def generate_observation(self, state):
         # Get all the available features we can extract from the game
@@ -176,42 +177,52 @@ class GameNetwork(object):
         print('Average score:', mean(scores_arr))
         print(Counter(scores_arr))
 
-    def visualise_game(self, model):
-        game = SnakeGame(gui=True)
-        _, _, snake, food = game.start()
-        prev_observation = self.generate_observation(snake, food)
-        for _ in range(self.goal_steps):
-            precictions = []
-            for action in range(-1, 2):
-                precictions.append(model.predict(self.add_action_to_observation(prev_observation, action).reshape(-1, 5, 1)))
-            action = np.argmax(np.array(precictions))
-            game_action = self.get_game_action(snake, action - 1)
-            done, _, snake, food  = game.step(game_action)
-            if done:
-                break
-            else:
-                prev_observation = self.generate_observation(snake, food)
+    def play_game(self, model, game):
+        state = game.start()
+        prev_observation = self.generate_observation(state)
+        while not state.failed:
+            predictions = []
+            # which move is the best? move index lives on [0, 3] segment
+            for action in range(4):
+                data = self.add_action_to_observation(
+                    prev_observation, action).reshape(-1, self.features_len, 1)
+                prediction = model.predict(data)
+                predictions.append(prediction)
+
+            action = np.argmax(np.array(predictions))
+            game_action = self.get_game_action(state, action)
+            state = game.step(game_action)
+            prev_observation = self.generate_observation(state)
+
+        if not state.failed:
+            logger.info('You win the game!')
+        logger.info('End the game with a score: %s', state.score)
 
     def train(self):
         training_data = self.initial_population()
-        nn_model = self.model()
-        nn_model = self.train_model(training_data, nn_model)
+        model = self.train_model(training_data, self.model())
         # self.test_model(nn_model)
+        return model
 
-    def visualise(self):
-        nn_model = self.model()
-        nn_model.load(self.filename)
-        self.visualise_game(nn_model)
+    def load_trained_model(self):
+        model = self.model()
+        model.load(self.filename)
+        return model
+        # self.visualise_game(nn_model)
 
     def test(self):
-        nn_model = self.model()
-        nn_model.load(self.filename)
-        self.test_model(nn_model)
+        model = self.model()
+        model.load(self.filename)
+        self.test_model(model)
 
 
 if __name__ == '__main__':
-    # game_instance = Game()
+    # create random game
+    game_instance = Game.create_game()
     network = GameNetwork(
         game_cls=Game,
     )
-    network.train()
+    # model = network.train()
+    model = network.load_trained_model()
+    print(game_instance)
+    network.play_game(model=model, game=game_instance)

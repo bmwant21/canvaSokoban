@@ -104,7 +104,7 @@ class Field(object):
     def __str__(self):
         return '\n'.join([
             ''.join([
-                str(self._field[y][x]) for x in range(self.lenx)
+                '{:^3}'.format(self._field[y][x]) for x in range(self.lenx)
             ]) for y in range(self.leny)
         ])
 

@@ -152,3 +152,10 @@ class Game(object):
             end=end,
             moves_left=steps,
         )
+
+    def __str__(self):
+        output = 'Start: {}\n'.format(self._start)
+        output += 'End: {}\n'.format(self._end)
+        output += 'Moves: {}\n'.format(self._moves_left)
+        output += str(self.field)
+        return output
