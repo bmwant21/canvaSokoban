@@ -4,7 +4,7 @@ from enum import IntEnum
 
 
 class Cell(IntEnum):
-    WALL = 0
+    WALL = -1
 
 
 class Position(object):
@@ -56,6 +56,14 @@ DIRECTIONS = {
 }
 
 
+class _Col(object):
+    def __init__(self, col):
+        self.col = col
+
+    def __getitem__(self, row_index):
+        return self.col[row_index]
+
+
 class Field(object):
     def __init__(self, xsize, ysize, max_value):
         self._field = [
@@ -84,8 +92,14 @@ class Field(object):
     def leny(self):
         return len(self._field)
 
-    def __getitem__(self, item):
-        return self._field.__getitem__(item)
+    def __getitem__(self, row_index):
+        """
+        Swapped
+        col = [self._field[row_index][col_index]
+               for row_index in range(self.leny)]
+        return _Col(col=col)
+        """
+        return self._field[row_index]
 
     def __str__(self):
         return '\n'.join([
@@ -99,7 +113,7 @@ if __name__ == '__main__':
     f = Field(4, 5, max_value=9)
     print(f.lenx, f.leny)
     f.fill()
-    print(f)
+    print(f._field)
 
     p1 = Position(x=1, y=2)
     p2 = Position(x=3, y=4)

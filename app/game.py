@@ -1,6 +1,8 @@
 import math
+import random
 
 from app.field import Position, Field, Cell, DIRECTIONS
+from app.utils import logger
 
 
 class State(object):
@@ -27,6 +29,7 @@ class State(object):
         self.current_position = current_position
         self.finish_position = finish_position
         self.failed = failed
+        # features
         self.distance_x = distance_x
         self.distance_y = distance_y
         self.distance = distance
@@ -42,6 +45,9 @@ class State(object):
 
 
 class Game(object):
+    DEFAULT_SIZE_X = 21
+    DEFAULT_SIZE_Y = 21
+
     def __init__(
         self,
         field: Field,
@@ -109,8 +115,7 @@ class Game(object):
             steps += 1
 
     def can_move(self, position: Position) -> bool:
-        new_pos = self._pos + position
-        return self.field[new_pos.y][new_pos.x] != Cell.WALL.value
+        return self.field[position.y][position.x] != Cell.WALL.value
 
     @property
     def failed(self) -> bool:
@@ -123,4 +128,27 @@ class Game(object):
 
     @classmethod
     def create_game(cls):
-        pass
+        xsize = cls.DEFAULT_SIZE_X
+        ysize = cls.DEFAULT_SIZE_Y
+
+        field = Field(
+            xsize=xsize,
+            ysize=ysize,
+            max_value=9,
+        )
+        field.fill()
+        # somewhere in III quadrant
+        start_x = random.randint(1, xsize // 2)
+        start_y = random.randint(ysize // 2, ysize-2)
+        start = Position(x=start_x, y=start_y)
+        # somewhere in I quadrant
+        end_x = random.randint(xsize // 2, xsize-2)
+        end_y = random.randint(1, ysize // 2)
+        end = Position(x=end_x, y=end_y)
+        steps = start.steps_to(end) + 4
+        return cls(
+            field=field,
+            start=start,
+            end=end,
+            moves_left=steps,
+        )

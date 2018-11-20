@@ -1,3 +1,8 @@
+"""
+export TF_BINARY_URL=https://storage.googleapis.com/tensorflow/linux/cpu/tensorflow-1.1.0-cp36-cp36m-linux_x86_64.whl
+pip install $TF_BINARY_URL
+pip install tflearn
+"""
 import math
 import numpy as np
 from random import randint
@@ -19,22 +24,16 @@ class GameNetwork(object):
         game_cls,
         initial_games=10000,
         test_games=1000,
-        goal_steps=2000,
         lr=1e-2,
         filename='game_nn_1.tflearn',
     ):
         self.game_cls = game_cls
         self.initial_games = initial_games
         self.test_games = test_games
-        self.goal_steps = goal_steps
         self.lr = lr
         self.filename = filename
-        self.vectors_and_keys = [
-            [[-1, 0], 0],
-            [[0, 1], 1],
-            [[1, 0], 2],
-            [[0, -1], 3]
-        ]
+        self.features_len = 13
+        self.n_epochs = 3
 
     def initial_population(self):
         """
@@ -53,46 +52,39 @@ class GameNetwork(object):
             # max steps should be MxN, corresponding to the size of the board
             for _ in range(game.max_steps):
                 # generate random move
-                action = self.generate_action(state)
+                action_value, action = self.generate_action(state)
                 # done, score, snake, food = self.game.step(action)
                 new_state = game.step(action)
+                data = self.add_action_to_observation(
+                    action_value, prev_observation)
                 if new_state.failed:
                     # punish
-                    training_data.append([self.add_action_to_observation(), -1])
+                    training_data.append([data, -1])
                     break
                 elif new_state.score > prev_score:
                     # still can make it, but score may vary
                     # reward
-                    training_data.append([self.add_action_to_observation(), 0])
+                    training_data.append([data, 1])
                 else:
                     # bumped into a wall
-                    training_data.append([self.add_action_to_observation(), 0])
+                    training_data.append([data, 0])
 
                 prev_observation = self.generate_observation(state)
                 prev_score = new_state.score
 
         return training_data
 
-    def generate_action(self, state: State) -> Position:
+    def generate_action(self, state: State) -> (int, Position):
         """
         Get new random position on the board from the available
         directions where we want move to
         """
         index = randint(0, 3)
         direction = list(DIRECTIONS.keys())[index]
-        return state.current_position + DIRECTIONS[direction]
+        return index, state.current_position + DIRECTIONS[direction]
 
     def get_game_action(self, snake, action):
-        snake_direction = self.get_snake_direction_vector(snake)
-        new_direction = snake_direction
-        if action == -1:
-            new_direction = self.turn_vector_to_the_left(snake_direction)
-        elif action == 1:
-            new_direction = self.turn_vector_to_the_right(snake_direction)
-        for pair in self.vectors_and_keys:
-            if pair[0] == new_direction.tolist():
-                game_action = pair[1]
-                return game_action
+        pass
 
     def generate_observation(self, state):
         # Get all the available features we can extract from the game
@@ -104,57 +96,48 @@ class GameNetwork(object):
         # distance y +
         # distance (it's actually an x+y sum), redundant? +
         # moves left +
-
-        snake_direction = self.get_snake_direction_vector(snake)
-        food_direction = self.get_food_direction_vector(snake, food)
-        barrier_left = self.is_direction_blocked(snake, self.turn_vector_to_the_left(snake_direction))
-        barrier_front = self.is_direction_blocked(snake, snake_direction)
-        barrier_right = self.is_direction_blocked(snake, self.turn_vector_to_the_right(snake_direction))
-        angle = self.get_angle(snake_direction, food_direction)
-        return np.array([int(barrier_left), int(barrier_front), int(barrier_right), angle])
+        return np.array([
+            state.distance_x,
+            state.distance_y,
+            state.distance,
+            state.moves_left,
+            state.barrier_up,
+            state.barrier_down,
+            state.barrier_left,
+            state.barrier_right,
+            state.value_up,
+            state.value_down,
+            state.value_left,
+            state.value_right,
+        ])
 
     def add_action_to_observation(self, observation, action):
         return np.append([action], observation)
 
-    def get_snake_direction_vector(self, snake):
-        return np.array(snake[0]) - np.array(snake[1])
-
-    def get_food_direction_vector(self, snake, food):
-        return np.array(food) - np.array(snake[0])
-
-    def normalize_vector(self, vector):
-        return vector / np.linalg.norm(vector)
-
-    def get_food_distance(self, snake, food):
-        return np.linalg.norm(self.get_food_direction_vector(snake, food))
-
-    def is_direction_blocked(self, snake, direction):
-        point = np.array(snake[0]) + np.array(direction)
-        return point.tolist() in snake[:-1] or point[0] == 0 or point[1] == 0 or point[0] == 21 or point[1] == 21
-
-    def turn_vector_to_the_left(self, vector):
-        return np.array([-vector[1], vector[0]])
-
-    def turn_vector_to_the_right(self, vector):
-        return np.array([vector[1], -vector[0]])
-
-    def get_angle(self, a, b):
-        a = self.normalize_vector(a)
-        b = self.normalize_vector(b)
-        return math.atan2(a[0] * b[1] - a[1] * b[0], a[0] * b[0] + a[1] * b[1]) / math.pi
-
     def model(self):
-        network = input_data(shape=[None, 5, 1], name='input')
-        network = fully_connected(network, 25, activation='relu')
+        network = input_data(shape=[None, self.features_len, 1], name='input')
+        network = fully_connected(
+            network,
+            self.features_len**2,
+            activation='relu'
+        )
         network = fully_connected(network, 1, activation='linear')
-        network = regression(network, optimizer='adam', learning_rate=self.lr, loss='mean_square', name='target')
+        network = regression(
+            network,
+            optimizer='adam',
+            learning_rate=self.lr,
+            loss='mean_square',
+            name='target',
+        )
         model = tflearn.DNN(network, tensorboard_dir='log')
         return model
 
     def train_model(self, training_data, model):
-        X = np.array([i[0] for i in training_data]).reshape(-1, 5, 1)
-        y = np.array([i[1] for i in training_data]).reshape(-1, 1)
-        model.fit(X,y, n_epoch = 3, shuffle = True, run_id = self.filename)
+        X = np.array([row[0] for row in training_data]) \
+            .reshape(-1, self.features_len, 1)
+        y = np.array([row[1] for row in training_data]).reshape(-1, 1)
+        logger.debug('Training network with %s epochs', self.n_epochs)
+        model.fit(X,y, n_epoch=self.n_epochs, shuffle=True, run_id=self.filename)
         model.save(self.filename)
         return model
 
@@ -213,7 +196,7 @@ class GameNetwork(object):
         training_data = self.initial_population()
         nn_model = self.model()
         nn_model = self.train_model(training_data, nn_model)
-        self.test_model(nn_model)
+        # self.test_model(nn_model)
 
     def visualise(self):
         nn_model = self.model()
@@ -228,5 +211,7 @@ class GameNetwork(object):
 
 if __name__ == '__main__':
     # game_instance = Game()
-    network = GameNetwork()
+    network = GameNetwork(
+        game_cls=Game,
+    )
     network.train()

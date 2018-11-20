@@ -208,3 +208,9 @@ typings/
 
 # FuseBox cache
 .fusebox/
+
+log/
+checkpoint
+*.meta
+*.index
+*.data-*

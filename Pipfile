@@ -9,6 +9,7 @@ name = "pypi"
 
 aiohttp = "*"
 "aiohttp-jinja2" = "*"
+tflearn = "*"
 
 
 [dev-packages]
