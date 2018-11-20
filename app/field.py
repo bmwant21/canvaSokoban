@@ -40,8 +40,20 @@ class Position(object):
     def __hash__(self):
         return hash((self.x, self.y))
 
+    def __add__(self, other):
+        cls = self.__class__
+        return cls(self.x+other.x, self.y+other.y)
+
     def steps_to(self, other):
         return abs(self.x - other.x) + abs(self.y - other.y)
+
+
+DIRECTIONS = {
+    'left':  Position(x=-1, y= 0),
+    'right': Position(x= 1, y= 0),
+    'up':    Position(x= 0, y= 1),
+    'down':  Position(x= 0, y=-1),
+}
 
 
 class Field(object):
@@ -91,5 +103,5 @@ if __name__ == '__main__':
 
     p1 = Position(x=1, y=2)
     p2 = Position(x=3, y=4)
-    p3 = p1+p2
-    print(p3)
+    p1 += p2
+    print(p1)

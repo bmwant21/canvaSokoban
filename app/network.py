@@ -10,18 +10,10 @@ from tflearn.layers.estimator import regression
 
 from app.utils import logger
 from app.game import Game, State
-from app.field import Position
+from app.field import Position, DIRECTIONS
 
 
 class GameNetwork(object):
-
-    DIRECTIONS = {
-        'left':  Position(x=-1, y= 0),
-        'right': Position(x= 1, y= 0),
-        'up':    Position(x= 0, y= 1),
-        'down':  Position(x= 0, y=-1),
-    }
-
     def __init__(
         self,
         game_cls,
@@ -57,7 +49,7 @@ class GameNetwork(object):
             prev_observation = self.generate_observation(state)
             prev_score = state.score
             # values that should influence rewarding score
-            distance = self.get_distance(state)
+            # distance = self.get_distance(state)
             # max steps should be MxN, corresponding to the size of the board
             for _ in range(game.max_steps):
                 # generate random move
@@ -76,7 +68,7 @@ class GameNetwork(object):
                     # bumped into a wall
                     training_data.append([self.add_action_to_observation(), 0])
 
-                prev_observation = self.generate_observation()
+                prev_observation = self.generate_observation(state)
                 prev_score = new_state.score
 
         return training_data
@@ -87,8 +79,8 @@ class GameNetwork(object):
         directions where we want move to
         """
         index = randint(0, 3)
-        direction = list(self.DIRECTIONS.keys())[index]
-        return state.current_position + self.DIRECTIONS[direction]
+        direction = list(DIRECTIONS.keys())[index]
+        return state.current_position + DIRECTIONS[direction]
 
     def get_game_action(self, snake, action):
         snake_direction = self.get_snake_direction_vector(snake)
@@ -104,14 +96,14 @@ class GameNetwork(object):
 
     def generate_observation(self, state):
         # Get all the available features we can extract from the game
-        # barrier left, score left
-        # barrier right, score right
-        # barrier top, score top
-        # barrier bottom score bottom
-        # distance x
-        # distance y
-        # distance (it's actually an x+y sum), redundant?
-        # moves left
+        # barrier left, score left +
+        # barrier right, score right +
+        # barrier top, score top +
+        # barrier bottom score bottom +
+        # distance x +
+        # distance y +
+        # distance (it's actually an x+y sum), redundant? +
+        # moves left +
 
         snake_direction = self.get_snake_direction_vector(snake)
         food_direction = self.get_food_direction_vector(snake, food)
