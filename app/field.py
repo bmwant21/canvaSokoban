@@ -44,8 +44,15 @@ class Position(object):
         cls = self.__class__
         return cls(self.x+other.x, self.y+other.y)
 
+    def __sub__(self, other):
+        cls = self.__class__
+        return cls(self.x-other.x, self.y-other.y)
+
     def steps_to(self, other):
         return abs(self.x - other.x) + abs(self.y - other.y)
+
+    def to_vector(self):
+        return [self.x, self.y]
 
     def to_dict(self):
         return {

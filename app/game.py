@@ -9,8 +9,8 @@ class State(object):
     def __init__(
         self,
         score,
-        current_position,
-        finish_position,
+        current_position: Position,
+        finish_position: Position,
         failed: bool,
         distance_x: int,
         distance_y: int,
@@ -129,7 +129,7 @@ class Game(object):
         return (self.field.lenx-2) * (self.field.leny-2)
 
     @classmethod
-    def create_game(cls):
+    def create_game_v1(cls):
         xsize = cls.DEFAULT_SIZE_X
         ysize = cls.DEFAULT_SIZE_Y
 
@@ -149,6 +149,34 @@ class Game(object):
         end = Position(x=end_x, y=end_y)
         # IMPORTANT: offset should be even
         steps = start.steps_to(end) + 4
+        return cls(
+            field=field,
+            start=start,
+            end=end,
+            moves_left=steps,
+        )
+
+    @classmethod
+    def create_game_v2(cls):
+        xsize = cls.DEFAULT_SIZE_X
+        ysize = cls.DEFAULT_SIZE_Y
+
+        field = Field(
+            xsize=xsize,
+            ysize=ysize,
+            max_value=9,
+        )
+        field.fill()
+        # somewhere in III quadrant
+        start_x = random.randint(1, xsize // 2)
+        start_y = random.randint(ysize // 2, ysize-2)
+        start = Position(x=start_x, y=start_y)
+        # somewhere in I quadrant
+        end_x = random.randint(xsize // 2, xsize-2)
+        end_y = random.randint(1, ysize // 2)
+        end = Position(x=end_x, y=end_y)
+        # IMPORTANT: offset should be even
+        steps = start.steps_to(end)
         return cls(
             field=field,
             start=start,

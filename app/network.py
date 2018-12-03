@@ -4,12 +4,12 @@ pip install $TF_BINARY_URL
 pip install tflearn
 """
 import math
-import numpy as np
 from random import randint
 from statistics import mean
 from collections import Counter
 
 import tflearn
+import numpy as np
 from tflearn.layers.core import input_data, fully_connected
 from tflearn.layers.estimator import regression
 
@@ -22,7 +22,7 @@ class GameNetwork(object):
     def __init__(
         self,
         game_cls,
-        initial_games=20000,
+        initial_games=10000,
         test_games=1000,
         lr=1e-2,
         filename='game_nn_1.tflearn',
@@ -32,8 +32,8 @@ class GameNetwork(object):
         self.test_games = test_games
         self.lr = lr
         self.filename = filename
-        self.features_len = 13
-        self.n_epochs = 10
+        self.features_len = 8
+        self.n_epochs = 4
 
     def initial_population(self):
         """
@@ -43,44 +43,40 @@ class GameNetwork(object):
         logger.debug('Playing %s random games '
                      'to create initial training data', self.initial_games)
         for _ in range(self.initial_games):
-            game = self.game_cls.create_game()
-            state = game.start()
-            prev_observation = self.generate_observation(state)
-            prev_score = state.score
+        # for _ in range(1):
+            game = self.game_cls.create_game_v2()
+            prev_state = game.start()
+            prev_observation = self.generate_observation_v2(prev_state, None)
             # values that should influence rewarding score
-            prev_distance = state.distance
+            prev_distance = prev_state.distance
             # max steps should be MxN, corresponding to the size of the board
             for _ in range(game.max_steps):
                 # generate random move
-                action_value, action = self.generate_action(state)
+                action_value, action = self.generate_action(prev_state)
                 new_state = game.step(action)
-                distance = state.distance
+                distance = new_state.distance
 
                 data = self.add_action_to_observation(
                     action_value, prev_observation)
-
-                if new_state.moves_left == 0 and not new_state.failed:
-                    logger.info('At least one correct game!')
-                    training_data.append([data, 1])
-
+                # print(data)
                 if new_state.failed:
                     # punish
                     training_data.append([data, -1])
                     break
-                elif new_state.score > prev_score:
-                    # still can make it, but score may vary
-                    # reward
-                    if distance < prev_distance:
-                        training_data.append([data, 1])
-                    else:
-                        training_data.append([data, 0])
+                elif distance < prev_distance:
+                    training_data.append([data, 1])
                 else:
-                    # bumped into a wall
-                    training_data.append([data, -1])
+                    # bumped into a wall or wrong direction
+                    training_data.append([data, 0])
 
-                prev_observation = self.generate_observation(state)
-                prev_score = new_state.score
-
+                direction = list(DIRECTIONS.keys())[action_value]
+                move_vector = DIRECTIONS[direction]
+                prev_observation = self.generate_observation_v2(
+                    prev_state, move_vector
+                )
+                prev_state = new_state
+        # for o in training_data:
+        #     print(' '.join([str(i) for i in o]))
         return training_data
 
     def generate_action(self, state: State) -> (int, Position):
@@ -95,7 +91,7 @@ class GameNetwork(object):
         direction = list(DIRECTIONS.keys())[action_index]
         return state.current_position + DIRECTIONS[direction]
 
-    def generate_observation(self, state):
+    def generate_observation_v1(self, state):
         # Get all the available features we can extract from the game
         # barrier left, score left +
         # barrier right, score right +
@@ -120,14 +116,49 @@ class GameNetwork(object):
             state.value_right,
         ])
 
+    def generate_observation_v2(self, state, move_vector=None):
+        angle = self.get_angle(state, move_vector)
+        evaluate_directions = [
+            self._die_from_here(state.current_position+mv, state)
+            for mv in DIRECTIONS.values()
+        ]
+        return np.array([
+            *evaluate_directions,
+            state.distance_x,
+            state.distance_y,
+            angle
+        ])
+
+    def _die_from_here(self, position, state) -> bool:
+        return position.steps_to(state.finish_position) <= state.moves_left
+
+    def normalize_vector(self, v):
+        norm = np.linalg.norm(v)
+        if norm == 0:
+            return v
+        return v / np.linalg.norm(v)
+
+    def get_angle(self, state, move_vector):
+        if move_vector is None:
+            move_vector = state.current_position
+        direction_vector = (state.current_position + move_vector).to_vector()
+        finish_vector = (state.finish_position -
+                         state.current_position).to_vector()
+        a = self.normalize_vector(direction_vector)
+        b = self.normalize_vector(finish_vector)
+        return math.atan2(a[0]*b[1] - a[1]*b[0],
+                          a[0]*b[0] + a[1]*b[1]) / math.pi
+
     def add_action_to_observation(self, observation, action):
         return np.append([action], observation)
 
     def model(self):
+        # input
         network = input_data(shape=[None, self.features_len, 1], name='input')
+        # hidden layer
         network = fully_connected(
             network,
-            self.features_len**2,
+            self.features_len*2,  # somewhere between size of the input and output layer
             activation='relu'
         )
         network = fully_connected(network, 1, activation='linear')
@@ -138,7 +169,11 @@ class GameNetwork(object):
             loss='mean_square',
             name='target',
         )
-        model = tflearn.DNN(network, tensorboard_dir='log')
+        model = tflearn.DNN(
+            network,
+            tensorboard_dir='log',
+            tensorboard_verbose=3,
+        )
         return model
 
     def train_model(self, training_data, model):
@@ -146,7 +181,7 @@ class GameNetwork(object):
             .reshape(-1, self.features_len, 1)
         y = np.array([row[1] for row in training_data]).reshape(-1, 1)
         logger.debug('Training network with %s epochs', self.n_epochs)
-        model.fit(X,y, n_epoch=self.n_epochs, shuffle=True, run_id=self.filename)
+        model.fit(X, y, n_epoch=self.n_epochs, shuffle=True, run_id=self.filename)
         model.save(self.filename)
         return model
 
@@ -188,7 +223,7 @@ class GameNetwork(object):
     def play_game(self, model, game):
         _path = []
         state = game.start()
-        prev_observation = self.generate_observation(state)
+        prev_observation = self.generate_observation_v2(state)
         while not state.failed and state.moves_left:
             predictions = []
             # which move is the best? move index lives on [0, 3] segment
@@ -199,10 +234,11 @@ class GameNetwork(object):
                 predictions.append(prediction)
             action = np.argmax(np.array(predictions))
             direction = list(DIRECTIONS.keys())[action]
+            move_vector = DIRECTIONS[direction]
             game_action = self.get_game_action(state, action)
             state = game.step(game_action)
             _path.append(direction)
-            prev_observation = self.generate_observation(state)
+            prev_observation = self.generate_observation_v2(state, move_vector)
 
         if not state.failed:
             logger.info('You win the game!')
@@ -230,14 +266,26 @@ class GameNetwork(object):
 
 if __name__ == '__main__':
     # create random game
-    game_instance = Game.create_game()
+    game_instance = Game.create_game_v2()
     network = GameNetwork(
         game_cls=Game,
     )
     model = network.train()
     # model = network.load_trained_model()
     print(game_instance)
-    state = network.play_game(model=model, game=game_instance)
-    print('Win ?', not state.failed)
-    print('Finish position', state.current_position)
-    print('Moves left', state.moves_left)
+    # Get resulting state
+    st = network.play_game(model=model, game=game_instance)
+    print('Win ?', not st.failed)
+    print('Finish position', st.current_position)
+    print('Moves left', st.moves_left)
+
+    # is dying when going to the left/right/up/down
+    # normalized angle between start and end
+    # output - suggested direction
+
+    # is the step was successful (distance becomes shorter)
+    # -1 didn't survive
+    # 0 survived direction is wrong
+    # 1 survived direction is right
+
+    # Min loss for now 0.35963
