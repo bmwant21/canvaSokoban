@@ -157,10 +157,7 @@ class Game(object):
         )
 
     @classmethod
-    def create_game_v2(cls):
-        xsize = cls.DEFAULT_SIZE_X
-        ysize = cls.DEFAULT_SIZE_Y
-
+    def create_game_v2(cls, xsize=DEFAULT_SIZE_X, ysize=DEFAULT_SIZE_Y):
         field = Field(
             xsize=xsize,
             ysize=ysize,
@@ -182,6 +179,33 @@ class Game(object):
             start=start,
             end=end,
             moves_left=steps,
+        )
+
+    @classmethod
+    def create_game_debug(cls):
+        # 4x4 game field
+        field = Field(
+            xsize=6,
+            ysize=6,
+            max_value=9,
+        )
+        field._field = [
+            [-1, -1, -1, -1, -1, -1],
+            [-1,  0,  1,  0,  1, -1],
+            [-1,  1,  5,  4,  3, -1],
+            [-1,  7,  6,  1,  0, -1],
+            [-1,  2,  1,  0,  1, -1],
+            [-1, -1, -1, -1, -1, -1],
+        ]
+        start = Position(x=1, y=4)
+        end = Position(x=4, y=2)
+        moves_left = 5
+        assert moves_left == start.steps_to(end)
+        return cls(
+            field=field,
+            start=start,
+            end=end,
+            moves_left=moves_left,
         )
 
     def __str__(self):

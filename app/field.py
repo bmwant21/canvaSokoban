@@ -1,6 +1,7 @@
 import math
 import random
 from enum import IntEnum
+from collections import OrderedDict
 
 
 class Cell(IntEnum):
@@ -61,12 +62,12 @@ class Position(object):
         }
 
 
-DIRECTIONS = {
+DIRECTIONS = OrderedDict({
     'up':    Position(x= 0, y=-1),
     'right': Position(x= 1, y= 0),
     'down':  Position(x= 0, y= 1),
     'left':  Position(x=-1, y= 0),
-}
+})
 
 
 class _Col(object):

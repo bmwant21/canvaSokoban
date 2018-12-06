@@ -10,6 +10,7 @@ name = "pypi"
 aiohttp = "*"
 "aiohttp-jinja2" = "*"
 tflearn = "*"
+click = "*"
 
 
 [dev-packages]
