@@ -1,5 +1,6 @@
 import math
 import random
+from functools import lru_cache
 
 from app.field import Position, Field, Cell, DIRECTIONS
 from app.utils import logger
@@ -127,6 +128,17 @@ class Game(object):
     def max_steps(self):
         # Go through all available cells besides border
         return (self.field.lenx-2) * (self.field.leny-2)
+
+    @property
+    @lru_cache(1)
+    def min_value(self):
+        return min(filter(lambda x: x >= 0,
+                          [elem for row in self.field for elem in row]))
+
+    @property
+    @lru_cache(1)
+    def max_value(self):
+        return max([elem for row in self.field for elem in row])
 
     @classmethod
     def create_game_v1(cls):

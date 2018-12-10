@@ -5,6 +5,11 @@ from app.game import Game
 from app.field import Position, DIRECTIONS
 
 
+def normalize_reward(reward, game):
+    """
+    Return value from [0, 1] for a given reward.
+    """
+
 def get_available_states_from(state: int, action: int, game: Game) -> list:
     states = []
     xsize = game.field.lenx - 2  # inner field
@@ -31,8 +36,7 @@ def get_available_states_from(state: int, action: int, game: Game) -> list:
             # negative reward if cannot finish the game from this state
             r = -1
         else:
-            r = game.field[new_pos.y][new_pos.x]
-            r_total += r
+            r = normalize_reward(game.field[new_pos.y][new_pos.x], game)
         s_ = (new_pos.y-1)*ysize + (new_pos.x-1)
         pairs.append((s_, r))
 
