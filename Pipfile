@@ -11,6 +11,7 @@ aiohttp = "*"
 "aiohttp-jinja2" = "*"
 tflearn = "*"
 click = "*"
+pytest = "*"
 
 
 [dev-packages]
