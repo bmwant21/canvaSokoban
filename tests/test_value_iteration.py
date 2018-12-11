@@ -89,4 +89,18 @@ def test_probabilities():
 
 
 def test_rewards():
-    pass
+    game = Game.create_game_debug()
+    action = get_action_index('right')
+    states = get_available_states_from(
+        state=8,
+        action=action,
+        game=game,
+    )
+    up_s, right_s, down_s, left_s = states
+    # going in a wrong direction should be punished
+    assert down_s[2] == -1
+    assert left_s[2] == -1
+
+    # assert positive rewards
+    assert up_s[2] > 0
+    assert right_s[2] > 0

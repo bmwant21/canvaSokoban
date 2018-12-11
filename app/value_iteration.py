@@ -39,11 +39,7 @@ def get_available_states_from(state: int, action: int, game: Game) -> list:
     if game.field._is_border(pos_from.x, pos_from.y):
         return states
 
-    pairs = []
     unavailable = 0
-    total = len(DIRECTIONS)
-    r_total = 0
-    moves_left = game._moves_left
     probability = get_probability_for(pos_from, game)
     # Available positions from current state when taking action
     for p in DIRECTIONS.values():
@@ -52,28 +48,18 @@ def get_available_states_from(state: int, action: int, game: Game) -> list:
             unavailable += 1
             continue
         distance_passed = pos_from.steps_to(game._start) + 1
-        print('Distance passed to', new_pos, distance_passed)
+        # print('Distance passed to', new_pos, distance_passed)
         moves_left = game._moves_left - distance_passed
-        print('Moves left', moves_left)
-        print('Steps to end', new_pos.steps_to(game._end))
+        # print('Moves left', moves_left)
+        # print('Steps to end', new_pos.steps_to(game._end))
         if new_pos.steps_to(game._end) > moves_left:
             # negative reward if cannot finish the game from this state
             r = -1
         else:
             r = normalize_reward(game.field[new_pos.y][new_pos.x], game)
         s_ = (new_pos.y-1)*ysize + (new_pos.x-1)
-        # pairs.append((s_, r))
         states.append((probability, s_, r))
-    # probability is always the same for all available directions
-    # probability = 1/(total - unavailable)
-    # for s_, r in pairs:
-    #     if r == -1:
-    #         p = 0
-    #     elif r == 0 or r_total == 0:
-    #         p = 0.01
-    #     else:
-    #         p = r/r_total
-    #     states.append((0.25, s_, r))
+
     return states
 
 
