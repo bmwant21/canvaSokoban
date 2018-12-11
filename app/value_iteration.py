@@ -27,13 +27,22 @@ def get_probability_for(pos: Position, game: Game) -> float:
     return probabilities[score]
 
 
-def get_available_states_from(state: int, action: int, game: Game) -> list:
-    states = []
+def state_to_pos(state: int, game: Game) -> Position:
     xsize = game.field.lenx - 2  # inner field
     ysize = game.field.leny - 2  # inner field
     xpos = state % xsize + 1  # +border
     ypos = state // ysize + 1  # +border
-    current_pos = Position(x=xpos, y=ypos)
+    return Position(x=xpos, y=ypos)
+
+
+def pos_to_state(pos: Position, game: Game) -> int:
+    ysize = game.field.leny - 2
+    return (pos.y-1)*ysize + (pos.x-1)
+
+
+def get_available_states_from(state: int, action: int, game: Game) -> list:
+    states = []
+    current_pos = state_to_pos(state, game)
     move = list(DIRECTIONS.values())[action]
     pos_from = current_pos + move
     if game.field._is_border(pos_from.x, pos_from.y):
@@ -57,10 +66,24 @@ def get_available_states_from(state: int, action: int, game: Game) -> list:
             r = -1
         else:
             r = normalize_reward(game.field[new_pos.y][new_pos.x], game)
-        s_ = (new_pos.y-1)*ysize + (new_pos.x-1)
+        s_ = pos_to_state(new_pos, game)
         states.append((probability, s_, r))
 
     return states
+
+
+def get_action_effects(state: int, action: int, game: Game):
+    move = list(DIRECTIONS.values())[action]
+    current_pos = state_to_pos(state, game)
+    new_pos = current_pos + move
+    if game.field._is_border(new_pos.x, new_pos.y):
+        # or (0, state, -1) ?
+        return []
+    p = get_probability_for(current_pos, game)
+    s_ = pos_to_state(new_pos, game)
+    # yes, but give -1 reward
+    r = normalize_reward(game.field[new_pos.y][new_pos.x], game)
+    return [(p, s_, r)]
 
 
 def _display_value_func(v):
@@ -77,7 +100,7 @@ def value_iteration(states_space_size, game, gamma=1.0):
     # value function, represents a VALUE for each state
     v = np.zeros(states_space_size)
     max_iterations = 100
-    display_freq = 1 # max_iterations // 10
+    display_freq = 1  # max_iterations // 10
     eps = 1e-10
     last_dif = float('inf')
 
@@ -91,7 +114,7 @@ def value_iteration(states_space_size, game, gamma=1.0):
                 next_states_rewards = []
                 # print('Going', list(DIRECTIONS.keys())[a], 'from state', s)
                 # iterate the states you can go from determined state-action pair (s,a)
-                for next_sr in get_available_states_from(s, a, game):
+                for next_sr in get_action_effects(s, a, game):
                     # print(next_sr)
                     # (probability, next_state, reward) of the states you can go from (s,a)
                     p, s_, r = next_sr
@@ -111,9 +134,9 @@ def value_iteration(states_space_size, game, gamma=1.0):
 
 
 def extract_policy(game, v, states_space_size, gamma=1.0):
-    '''
+    """
     Extract the policy given a value-function
-    '''
+    """
 
     policy = np.zeros(states_space_size) #Policy : array of 0s with as many elements as possible states
     for s in range(states_space_size):
