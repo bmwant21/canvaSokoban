@@ -226,3 +226,16 @@ class Game(object):
         output += 'Moves: {}\n'.format(self._moves_left)
         output += str(self.field)
         return output
+
+
+def state_to_pos(state: int, game: Game) -> Position:
+    xsize = game.field.lenx - 2  # inner field
+    ysize = game.field.leny - 2  # inner field
+    xpos = state % xsize + 1  # +border
+    ypos = state // ysize + 1  # +border
+    return Position(x=xpos, y=ypos)
+
+
+def pos_to_state(pos: Position, game: Game) -> int:
+    ysize = game.field.leny - 2
+    return (pos.y-1)*ysize + (pos.x-1)

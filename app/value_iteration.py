@@ -27,19 +27,6 @@ def get_probability_for(pos: Position, game: Game) -> float:
     return probabilities[score]
 
 
-def state_to_pos(state: int, game: Game) -> Position:
-    xsize = game.field.lenx - 2  # inner field
-    ysize = game.field.leny - 2  # inner field
-    xpos = state % xsize + 1  # +border
-    ypos = state // ysize + 1  # +border
-    return Position(x=xpos, y=ypos)
-
-
-def pos_to_state(pos: Position, game: Game) -> int:
-    ysize = game.field.leny - 2
-    return (pos.y-1)*ysize + (pos.x-1)
-
-
 def get_available_states_from(state: int, action: int, game: Game) -> list:
     states = []
     current_pos = state_to_pos(state, game)
@@ -77,12 +64,23 @@ def get_action_effects(state: int, action: int, game: Game):
     current_pos = state_to_pos(state, game)
     new_pos = current_pos + move
     if game.field._is_border(new_pos.x, new_pos.y):
-        # or (0, state, -1) ?
+        # return [(0, state, -1)] ?
         return []
+
     p = get_probability_for(current_pos, game)
     s_ = pos_to_state(new_pos, game)
     # yes, but give -1 reward
-    r = normalize_reward(game.field[new_pos.y][new_pos.x], game)
+    # we may be going back, so make sure steps are counter properly
+    dist_passed = current_pos.steps_to(game._start) + 1
+    moves_left = game._moves_left - dist_passed
+    if new_pos.steps_to(game._end) > moves_left:
+        r = -1
+    else:
+        # r = normalize_reward(game.field[new_pos.y][new_pos.x], game)
+        r = game.field[new_pos.y][new_pos.x]
+
+    if new_pos == game._end:
+        r = 100
     return [(p, s_, r)]
 
 
@@ -118,17 +116,18 @@ def value_iteration(states_space_size, game, gamma=1.0):
                     # print(next_sr)
                     # (probability, next_state, reward) of the states you can go from (s,a)
                     p, s_, r = next_sr
-                    # reward from one-step-ahead state
+                    # reward if we choose this action
                     next_states_rewards.append((p*(r + prev_v[s_])))
                 # store the sum of rewards for each pair (s,a)
                 q_sa.append(np.sum(next_states_rewards))
             # choose the max reward of (s,a) pairs and put it on the actual value function for STATE s
+            print(q_sa)
             v[s] = max(q_sa)
-
+        # break
         # check convergence
-        if np.abs(np.abs(np.sum(prev_v - v)) - last_dif) < eps:
-            print('Value-iteration converged at iteration %d' % (i+1))
-            break
+        # if np.abs(np.abs(np.sum(prev_v - v)) - last_dif) < eps:
+        #     print('Value-iteration converged at iteration %d' % (i+1))
+        #     break
         last_dif = np.abs(np.sum(prev_v - v))
     return v
 
