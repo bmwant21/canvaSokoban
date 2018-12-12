@@ -1,7 +1,7 @@
 import click
 import numpy as np
 
-from app.game import Game
+from app.game import Game, pos_to_state, state_to_pos
 from app.field import Position, DIRECTIONS
 
 

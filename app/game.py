@@ -227,6 +227,10 @@ class Game(object):
         output += str(self.field)
         return output
 
+    @property
+    def states_space_size(self) -> int:
+        # may vary based on content of the field
+        return 16
 
 def state_to_pos(state: int, game: Game) -> Position:
     xsize = game.field.lenx - 2  # inner field
