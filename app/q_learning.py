@@ -34,16 +34,17 @@ def perform_action(state, action, game: Game):
 
     dist_passed = current_pos.steps_to(game._start) + 1
     moves_left = game._moves_left - dist_passed
+    reward = game.field[new_pos.y][new_pos.x]  # game.get_reward(pos) method?
     if new_pos.steps_to(game._end) > moves_left:
         r = -1
         done = True
     else:
-        reward = game.field[new_pos.y][new_pos.x]  # game.get_reward(pos) method?
         r = convert_reward(reward)
 
     if new_pos == game._end:
-        done = True
         r = reward
+        done = True
+
     new_state = pos_to_state(new_pos, game)  # method on Game?
     return r, new_state, done
 
@@ -63,7 +64,6 @@ def q_learning(game: Game):
     decay_rate = 0.001
     for episode in range(total_episodes):
         # reset state
-        done = False
         s = pos_to_state(game._start, game)
         for step in range(max_steps):
             # explore the world, choose an action randomly
@@ -82,8 +82,6 @@ def q_learning(game: Game):
             if done is True:
                 break
         eps = min_eps + (max_eps - min_eps)*np.exp(-decay_rate*episode)
-        # I want to converge here instead of max iterations
-    print(QSA)
     return QSA
 
 

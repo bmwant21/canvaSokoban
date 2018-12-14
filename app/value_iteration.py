@@ -118,15 +118,11 @@ def value_iteration(states_space_size, game, gamma=1.0):
         for s in range(states_space_size):  # for each STATE s
             q_sa = []
             for a in range(len(DIRECTIONS)):  # for each ACTION a
-                # print('Going', list(DIRECTIONS.keys())[a], 'from state', s)
-                # perform action
+                #  perform action
                 r, s_ = get_action_effects(s, a, game)
-                # reward if we choose this action
                 p = 1
                 q_sa.append((p*(r + prev_v[s_])))
             # choose the max reward of (s,a) pairs and put it on the actual value function for STATE s
-            # print(q_sa)
-            # v[s] = max(q_sa)
             v[s] = v[s] + alpha*(max(q_sa) - v[s])
         # check convergence
         if np.abs(np.abs(np.sum(prev_v - v)) - last_dif) < eps:
@@ -199,7 +195,6 @@ def main():
             print(v[index], end=' ')
         print()
     policy = extract_policy(game_instance, v, states_space_size)
-    # import pdb; pdb.set_trace()
     print_policy(policy.astype('int'), game=game_instance)
 
 
