@@ -13,6 +13,15 @@ def normalize_reward(reward, game) -> float:
     return reward / diff
 
 
+def convert_reward(reward) -> float:
+    """
+    r'(s) = -d/(r(s)+c)
+    """
+    d = 1
+    c = 2
+    return -d / (reward + c)
+
+
 def get_probability_for(pos: Position, game: Game) -> float:
     probabilities = {
         0: 1/4,
@@ -60,12 +69,11 @@ def get_available_states_from(state: int, action: int, game: Game) -> list:
 
 
 def get_action_effects(state: int, action: int, game: Game):
-    move = list(DIRECTIONS.values())[action]
     current_pos = state_to_pos(state, game)
+    move = list(DIRECTIONS.values())[action]
     new_pos = current_pos + move
     if game.field._is_border(new_pos.x, new_pos.y):
-        # return [(0, state, -1)] ?
-        return []
+        return 0, state
 
     p = get_probability_for(current_pos, game)
     s_ = pos_to_state(new_pos, game)
@@ -73,15 +81,16 @@ def get_action_effects(state: int, action: int, game: Game):
     # we may be going back, so make sure steps are counter properly
     dist_passed = current_pos.steps_to(game._start) + 1
     moves_left = game._moves_left - dist_passed
+    reward_value = game.field[new_pos.y][new_pos.x]
     if new_pos.steps_to(game._end) > moves_left:
         r = -1
     else:
         # r = normalize_reward(game.field[new_pos.y][new_pos.x], game)
-        r = game.field[new_pos.y][new_pos.x]
+        r = convert_reward(reward_value)
 
     if new_pos == game._end:
-        r = 100
-    return [(p, s_, r)]
+        r = reward_value
+    return r, s_
 
 
 def _display_value_func(v):
@@ -101,7 +110,7 @@ def value_iteration(states_space_size, game, gamma=1.0):
     display_freq = 1  # max_iterations // 10
     eps = 1e-10
     last_dif = float('inf')
-
+    alpha = 0.9  # learning rate
     print('Starting training loop...')
     for i in range(max_iterations):
         _display_value_func(v)
@@ -109,25 +118,20 @@ def value_iteration(states_space_size, game, gamma=1.0):
         for s in range(states_space_size):  # for each STATE s
             q_sa = []
             for a in range(len(DIRECTIONS)):  # for each ACTION a
-                next_states_rewards = []
                 # print('Going', list(DIRECTIONS.keys())[a], 'from state', s)
-                # iterate the states you can go from determined state-action pair (s,a)
-                for next_sr in get_action_effects(s, a, game):
-                    # print(next_sr)
-                    # (probability, next_state, reward) of the states you can go from (s,a)
-                    p, s_, r = next_sr
-                    # reward if we choose this action
-                    next_states_rewards.append((p*(r + prev_v[s_])))
-                # store the sum of rewards for each pair (s,a)
-                q_sa.append(np.sum(next_states_rewards))
+                # perform action
+                r, s_ = get_action_effects(s, a, game)
+                # reward if we choose this action
+                p = 1
+                q_sa.append((p*(r + prev_v[s_])))
             # choose the max reward of (s,a) pairs and put it on the actual value function for STATE s
-            print(q_sa)
-            v[s] = max(q_sa)
-        # break
+            # print(q_sa)
+            # v[s] = max(q_sa)
+            v[s] = v[s] + alpha*(max(q_sa) - v[s])
         # check convergence
-        # if np.abs(np.abs(np.sum(prev_v - v)) - last_dif) < eps:
-        #     print('Value-iteration converged at iteration %d' % (i+1))
-        #     break
+        if np.abs(np.abs(np.sum(prev_v - v)) - last_dif) < eps:
+            print('Value-iteration converged at iteration %d' % (i+1))
+            break
         last_dif = np.abs(np.sum(prev_v - v))
     return v
 

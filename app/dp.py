@@ -18,6 +18,7 @@ DIRECTION_ARROWS = (
 
 def dynamic_programming(game):
     q = queue.Queue()
+    # todo (misha): no need to use it, we can count steps based on position
     path_map = dict()  # hold steps to find way back
     scores_map = dict()
     pos_start = game._start
