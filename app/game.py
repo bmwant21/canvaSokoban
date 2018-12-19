@@ -232,6 +232,7 @@ class Game(object):
         # may vary based on content of the field
         return 16
 
+
 def state_to_pos(state: int, game: Game) -> Position:
     xsize = game.field.lenx - 2  # inner field
     ysize = game.field.leny - 2  # inner field

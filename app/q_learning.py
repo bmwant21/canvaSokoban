@@ -55,8 +55,10 @@ def q_learning(game: Game):
     states_space_size = (game.field.leny - 2)*(game.field.lenx - 2)
     actions_space_size = len(DIRECTIONS)
     QSA = np.zeros(shape=(states_space_size, actions_space_size))
+    # strive for long term high reward
     gamma = 1  # discount factor
-    alpha = 0.9  # learning rate
+    # In fully deterministic environment a learning rate of 1 is optimal
+    alpha = 1  # learning rate
     # Exploration rate for e-greedy action selection
     min_eps = 0.01
     eps = 1.0
@@ -75,7 +77,8 @@ def q_learning(game: Game):
             r, s_, done = perform_action(s, a, game)
             qsa = QSA[s][a]
             qsa_ = np.max(QSA[s_])
-            QSA[s][a] = qsa + alpha*(r + gamma*qsa_ - qsa)
+            # QSA[s][a] = qsa + alpha*(r + gamma*qsa_ - qsa)
+            QSA[s][a] = r + qsa_
 
             # change state
             s = s_
@@ -83,6 +86,29 @@ def q_learning(game: Game):
                 break
         eps = min_eps + (max_eps - min_eps)*np.exp(-decay_rate*episode)
     return QSA
+
+
+def get_policy(q):
+    def get_action_index(state):
+        return np.argmax(q[state])
+
+    policy = [get_action_index(state) for state, _ in enumerate(q)]
+    return policy
+
+
+def get_path(game):
+    QSA = q_learning(game)
+    policy = get_policy(QSA)
+    path = []
+    current_pos = game._start
+    while True:
+        path.append(current_pos)
+        if current_pos == game._end:
+            break
+        state = pos_to_state(current_pos, game)
+        action = policy[state]
+        current_pos += list(DIRECTIONS.values())[action]
+    return path
 
 
 def print_policy(policy, game):
@@ -97,17 +123,13 @@ def print_policy(policy, game):
         '↓',  # down
         '←',  # left
     )
-
-    def get_direction_index(state):
-        return np.argmax(policy[state])
-
     rows = game.field.leny-2
     for row in range(rows):
         for column in range(game.field.lenx-2):
             state = row*rows + column
+            action = policy[state]
             pos = Position(x=column+1, y=row+1)
-            index = get_direction_index(state)
-            text = '{} '.format(directions[index])
+            text = '{} '.format(directions[action])
             if pos == game._start:
                 click.secho(text, fg='green', nl=False)
             elif pos == game._end:
@@ -120,7 +142,8 @@ def print_policy(policy, game):
 def main():
     game = Game.create_game_debug()
     print(game)
-    policy = q_learning(game)
+    Q = q_learning(game)
+    policy = get_policy(Q)
     print_policy(policy, game)
 
 

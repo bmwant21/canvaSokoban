@@ -11,7 +11,8 @@ moves = 0;
 cherriesLeft = 0;
 
 var field, posi, posj,
-  endi, endj;
+  endi, endj,
+  totalMoves, path;
 
 $.get('/load_data', function(data) {
   console.log(data);
@@ -20,8 +21,11 @@ $.get('/load_data', function(data) {
   posi = data.player.y;
   endj = data.end.x;
   endi = data.end.y;
+  path = data.path;
+  totalMoves = data.moves;
   draw();
   drawScores();
+  drawStats();
   // drawAllField();
 });
 
@@ -76,10 +80,22 @@ function drawPlayer(posI, posJ) {
   ctx.drawImage(man, coordx, coordy, 20, 20);
 }
 
-function drawScores() {
+function containsPoint(point, list, step) {
+  let path = list.slice(0, step);
+  for (let i = 0; i < path.length; i++) {
+    if (list[i].x === point.x && list[i].y === point.y) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function drawScores(step) {
   var canvas = document.getElementById('fieldb');
   var ctx = canvas.getContext('2d');
   ctx.font = "10px Arial";
+
+  if(step === undefined) step = 0;
 
   for(var i = 0; i < field.length; i++) {
     for(var j = 0; j < field[i].length; j++) {
@@ -88,19 +104,32 @@ function drawScores() {
       var coordy = 20 * i + 15;
       if(value === ItemsEnum.WALL) continue;
       clear(i, j);
+
+      if(containsPoint({x: j, y: i}, path, step)) {
+        ctx.fillStyle = '#E5F77D';
+        ctx.fillRect(20*j, 20*i, 20, 20);
+        ctx.fillStyle = '#000000';
+      }
+
       if(i === endi && j === endj) {
         ctx.fillStyle = '#F98948';
         ctx.fillRect(20*j, 20*i, 20, 20);
         ctx.fillStyle = '#000000';
       }
+
       ctx.fillText(value, coordx, coordy);
     }
   }
 }
 
-function drawAllField() {
+function drawStats() {
+  $('#moves').text(totalMoves);
+  $('#score').text(0);
+}
+
+function drawAllField(step) {
   drawElem(block, -1);
-  drawScores();
+  drawScores(step);
   // draw player in front of everything
   drawPlayer(posi, posj);
 }
@@ -162,7 +191,7 @@ function doKeyDown(e) {
       posj += 1;
     }
   }
-  drawAllField();
+  drawAllField(path.length);
 }
 
 
@@ -186,3 +215,26 @@ function draw() {
     drawElem(block, -1);
   };
 }
+
+
+$(function() {
+  $('#solvebutton').click(function() {
+    var aPath = path.slice();
+    console.log(aPath);
+    var i = 0, score = 0;
+    var step = setInterval(function move() {
+      if(i >= aPath.length) {
+        clearInterval(step);
+        return;
+      }
+      $('#moves').text(totalMoves-i);
+      var coord = aPath[i];
+      posi = coord.y;
+      posj = coord.x;
+      score += field[posi][posj];
+      $('#score').text(score);
+      drawAllField(i);
+      i++;
+    }, 300);
+  });
+});
