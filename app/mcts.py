@@ -40,26 +40,46 @@ class Node(object):
 
 
 class GameState(object):
-    def __init__(self):
-        pass
+    def __init__(self, game):
+        self.game = game
 
     def play(self, policy):
-        pass
+        game = self.game
+        current_pos = game._pos
+        while not game.finished:
+            available_moves = []
+            for move in DIRECTIONS.values():
+                new_pos = current_pos + move
+                if game.can_move(new_pos):
+                    available_moves.append(move)
+            selected_move = policy.choose_action(available_moves)
+
+            game.step(selected_move)
+
+            # Terminal state we've reached a finish point
+            if game.success:
+                return True
+
+        return False
 
     def get_all_states(self):
+        """Return all available states that can be reached from given state"""
+        game = self.game
         current_pos = game._pos
+        # breakpoint()
         states = []
         for move in DIRECTIONS.values():
             new_pos = current_pos + move
             game_copy = game.copy()
             if game_copy.can_move(new_pos):
                 game_copy.step(new_pos)
-                states.append(game_copy)
+                states.append(GameState(game=game_copy))
         return states
 
 
 class RandomPolicy(object):
-    pass
+    def choose_action(self, available_actions):
+        return random.choice(available_actions)
 
 
 class MCTS(object):
@@ -76,6 +96,7 @@ class MCTS(object):
         promising_node = node
         while promising_node.children:
             promising_node = max(node.children, key=lambda x: x.uct)
+        print('Selected most promising node', promising_node)
         return promising_node
 
     def expansion(self, node):
@@ -85,6 +106,7 @@ class MCTS(object):
         for state in node.state.get_all_states():
             new_node = Node(state=state, parent=node)
             node.add_child(new_node)
+            print('Adding node', new_node)
 
     def simulation(self, node):
         """Pick a child node arbitrarily. Continue until terminal state or resource limit.
@@ -113,7 +135,8 @@ class MCTS(object):
         result, selected_node = self.simulation(node)
         self.backpropagation(selected_node, result)
 
-        print('Best move is', node.state)
+        breakpoint()
+        print('Best move is', node.state.game._pos)
 
     def move(self):
         """Change root after a move being made"""
@@ -121,6 +144,8 @@ class MCTS(object):
 
 if __name__ == '__main__':
     game = Game.create_game_debug()
-    root = Node(None)
+    print(game)
+    game_state = GameState(game=game)
+    root = Node(state=game_state)
     t = MCTS(root=root)
     t.search()

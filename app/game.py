@@ -60,12 +60,8 @@ class Game(object):
         self._start = start
         self._end = end
         self._score = 0
-        self._pos = None
+        self._pos = start
         self._moves_left = moves_left
-
-    def start(self):
-        self._pos = self._start
-        return self.step(self._start)
 
     def step(self, position: Position):
         if self.can_move(position):
@@ -125,9 +121,17 @@ class Game(object):
         # return self._pos.steps_to(self._end) > self._moves_left
 
     @property
+    def success(self) -> bool:
+        return self._pos == self._end and self._moves_left >= 0
+
+    @property
     def max_steps(self):
         # Go through all available cells besides border
         return (self.field.lenx-2) * (self.field.leny-2)
+
+    @property
+    def finished(self) -> bool:
+        return self._moves_left == 0
 
     @property
     @lru_cache(1)
