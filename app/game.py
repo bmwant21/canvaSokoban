@@ -220,6 +220,21 @@ class Game(object):
             moves_left=moves_left,
         )
 
+    def copy(self):
+        """
+        Create a new object with exactly same internal state as current one
+        """
+        cls = self.__class__
+        game_copy = cls(
+            field=self.field,
+            start=self._start,
+            end=self._end,
+            moves_left=self._moves_left,
+        )
+        game_copy._score = self._score
+        game_copy._pos = self._pos
+        return game_copy
+
     def __str__(self):
         output = 'Start: {}\n'.format(self._start)
         output += 'End: {}\n'.format(self._end)
